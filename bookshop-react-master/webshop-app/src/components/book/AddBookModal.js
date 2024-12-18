@@ -1,312 +1,263 @@
-import { Form, Modal } from "react-bootstrap";
-import { Button } from "react-bootstrap";
-import { useState } from "react";
-import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
+import React, { useState, useEffect } from "react";
+import { Modal, Form, Button, Row, Col, Toast, ToastContainer } from "react-bootstrap";
 import "../../css/Modal.css";
 import { BASE_URL } from "../../Constants";
 
 function AddBookModal({ getBooks, ...props }) {
     const [bookToAdd, setBookToAdd] = useState({
-        name: "",
-        author: "",
-        category: "",
-        publishing_house: "",
-        price: "",
-        discount: "",
-        quantity: "",
-        availability_date: "",
-        rating: "",
-        image: "new_book.png"
+        Product_name: "",
+        Description: "",
+        Author: "",
+        Price: "",
+        Stock: "",
+        Product_image: "",
+        Status: "上架", // 預設值
+        Seller_ID: "", // 手動輸入賣家 ID
     });
+
+    const [allCategories, setAllCategories] = useState([]); // 所有分類
+    const [selectedCategories, setSelectedCategories] = useState([]); // 選中的分類
     const [validated, setValidated] = useState(false);
+    const [showToast, setShowToast] = useState(false);
+    const [toastVariant, setToastVariant] = useState("success");
+    const [toastMessage, setToastMessage] = useState("");
+
+    useEffect(() => {
+        if (props.show) {
+            setBookToAdd({
+                Product_name: "",
+                Description: "",
+                Author: "",
+                Price: "",
+                Stock: "",
+                Product_image: "",
+                Status: "上架",
+                Seller_ID: "",
+            });
+            setSelectedCategories([]);
+            setValidated(false);
+
+            // 獲取所有分類
+            const fetchCategories = async () => {
+                try {
+                    const response = await fetch(`${BASE_URL}/categories`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        setAllCategories(data);
+                    } else {
+                        console.error("無法獲取分類");
+                    }
+                } catch (error) {
+                    console.error("獲取分類時發生錯誤：", error);
+                }
+            };
+
+            fetchCategories();
+        }
+    }, [props.show]);
 
     const handleChangeAddBooks = (e) => {
-        const target = e.target;
-        const value = target.value;
-        const name = target.name;
+        const { name, value } = e.target;
         setBookToAdd({ ...bookToAdd, [name]: value });
     };
 
-    const addBook = (e) => {
-        const form = e.currentTarget;
+    const handleCategoryChange = (categoryId, checked) => {
+        setSelectedCategories((prev) =>
+            checked ? [...prev, categoryId] : prev.filter((id) => id !== categoryId)
+        );
+    };
+
+    const addBook = async (e) => {
         e.preventDefault();
-        if (form.checkValidity()) {
-            fetch(`${BASE_URL}/books`, {
+        const form = e.currentTarget;
+        if (form.checkValidity() === false) {
+            setValidated(true);
+            return;
+        }
+
+        try {
+            const response = await fetch(`${BASE_URL}/books`, {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
                 },
-                body: JSON.stringify(bookToAdd)
-            }).then((data) => {
-                if (data.status === 200) {
-                    getBooks();
-                    props.onHide();
-                } else {
-                    console.log("error");
-                }
+                body: JSON.stringify({
+                    ...bookToAdd,
+                    Categories: selectedCategories,
+                }),
             });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setToastVariant("success");
+                setToastMessage("書籍新增成功！");
+                getBooks(); // 刷新書籍列表
+                props.onHide(); // 關閉 Modal
+            } else {
+                setToastVariant("danger");
+                setToastMessage(`新增書籍失敗: ${data.message}`);
+            }
+        } catch (error) {
+            console.error("新增書籍時發生錯誤：", error);
+            setToastVariant("danger");
+            setToastMessage("新增書籍時發生錯誤，請稍後再試！");
+        } finally {
+            setShowToast(true);
         }
-        setValidated(true);
     };
 
     return (
-        <Modal
-            {...props}
-            size="lg"
-            aria-labelledby="contained-modal-title-vcenter"
-            centered
-        >
-            <Modal.Header closeButton>
-                <Modal.Title id="contained-modal-title-vcenter">
-                    Add Book
-                </Modal.Title>
-            </Modal.Header>
-            <Modal.Body>
-                <div
-                    id="new-book-container"
-                    className="new-book hide d-flex justify-content-center flex-column align-items-center text-left"
-                >
-                    <Form
-                        onSubmit={(e) => addBook(e)}
-                        className="new-book-form"
-                        noValidate
-                        validated={validated}
-                    >
-                        <Form.Group
-                            as={Row}
-                            className="mb-3"
-                            controlId="validationCustom01"
-                        >
-                            <Form.Label column sm="3">
-                                Category*
-                            </Form.Label>
+        <>
+            <Modal {...props} size="lg" centered>
+                <Modal.Header closeButton>
+                    <Modal.Title>新增書籍</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <Form onSubmit={addBook} noValidate validated={validated}>
+                        <Form.Group as={Row} className="mb-3">
+                            <Form.Label column sm="3">書籍名稱*</Form.Label>
                             <Col sm="9">
                                 <Form.Control
-                                    type="text"
-                                    name="category"
-                                    defaultValue={props.category}
+                                    name="Product_name"
+                                    value={bookToAdd.Product_name}
                                     onChange={handleChangeAddBooks}
-                                    placeholder="ex. : Science Fiction"
-                                    aria-label="ex. : Science Fiction"
-                                    pattern="^[\w\-\s\,]+$"
+                                    placeholder="輸入書籍名稱"
                                     required
                                 />
                                 <Form.Control.Feedback type="invalid">
-                                    Invalid book category.
+                                    請輸入書籍名稱
                                 </Form.Control.Feedback>
                             </Col>
                         </Form.Group>
-                        <Form.Group
-                            as={Row}
-                            className="mb-3"
-                            controlId="validationCustom01"
-                        >
-                            <Form.Label column sm="3">
-                                Name*
-                            </Form.Label>
+
+                        <Form.Group as={Row} className="mb-3">
+                            <Form.Label column sm="3">描述</Form.Label>
                             <Col sm="9">
                                 <Form.Control
-                                    name="name"
-                                    type="text"
-                                    defaultValue={props.name}
+                                    name="Description"
+                                    as="textarea"
+                                    rows={3}
+                                    value={bookToAdd.Description}
                                     onChange={handleChangeAddBooks}
-                                    placeholder="ex. : The Lord Of The Rings"
-                                    aria-label="ex. : The Lord Of The Rings"
-                                    aria-describedby="basic-addon1"
-                                    pattern="^[\w\-\s\,]+$"
+                                    placeholder="輸入書籍描述"
+                                />
+                            </Col>
+                        </Form.Group>
+
+                        <Form.Group as={Row} className="mb-3">
+                            <Form.Label column sm="3">作者</Form.Label>
+                            <Col sm="9">
+                                <Form.Control
+                                    name="Author"
+                                    value={bookToAdd.Author}
+                                    onChange={handleChangeAddBooks}
+                                    placeholder="輸入作者名稱"
+                                />
+                            </Col>
+                        </Form.Group>
+
+                        <Form.Group as={Row} className="mb-3">
+                            <Form.Label column sm="3">價格*</Form.Label>
+                            <Col sm="9">
+                                <Form.Control
+                                    name="Price"
+                                    type="number"
+                                    min="0"
+                                    value={bookToAdd.Price}
+                                    onChange={handleChangeAddBooks}
+                                    placeholder="輸入價格"
                                     required
                                 />
                                 <Form.Control.Feedback type="invalid">
-                                    Invalid book name.
+                                    請輸入有效價格
                                 </Form.Control.Feedback>
                             </Col>
                         </Form.Group>
-                        <Form.Group
-                            as={Row}
-                            className="mb-3"
-                            controlId="validationCustom01"
-                        >
-                            <Form.Label column sm="3">
-                                Author*
-                            </Form.Label>
+
+                        <Form.Group as={Row} className="mb-3">
+                            <Form.Label column sm="3">庫存數量*</Form.Label>
                             <Col sm="9">
                                 <Form.Control
-                                    name="author"
-                                    type="text"
-                                    defaultValue={props.author}
+                                    name="Stock"
+                                    type="number"
+                                    min="0"
+                                    value={bookToAdd.Stock}
                                     onChange={handleChangeAddBooks}
-                                    placeholder="ex. : J. R. R. Tolkien"
-                                    aria-label="ex. : J. R. R. Tolkien"
-                                    aria-describedby="basic-addon1"
-                                    pattern="(^[a-zA-Z]{1,16})(\.{0,1})([ ]{0,1})([a-zA-Z]{1,16})(\.{0,1})([ ]{0,1})([a-zA-Z]{0,26})"
+                                    placeholder="輸入庫存數量"
                                     required
                                 />
                                 <Form.Control.Feedback type="invalid">
-                                    Invalid book author.
+                                    請輸入有效庫存
                                 </Form.Control.Feedback>
                             </Col>
                         </Form.Group>
-                        <Form.Group
-                            as={Row}
-                            className="mb-3"
-                            controlId="validationCustom01"
-                        >
-                            <Form.Label column sm="3">
-                                Publishing House*
-                            </Form.Label>
+
+                        <Form.Group as={Row} className="mb-3">
+                            <Form.Label column sm="3">圖片路徑</Form.Label>
                             <Col sm="9">
                                 <Form.Control
-                                    name="publishing_house"
-                                    type="text"
-                                    defaultValue={props.publishing_house}
+                                    name="Product_image"
+                                    value={bookToAdd.Product_image}
                                     onChange={handleChangeAddBooks}
-                                    placeholder="ex. : Orion, Rao"
-                                    aria-label="ex. : Orion, Rao"
-                                    aria-describedby="basic-addon1"
-                                    pattern="^[\w\-\s\,]+$"
+                                    placeholder="輸入圖片 URL"
+                                />
+                            </Col>
+                        </Form.Group>
+
+                        <Form.Group as={Row} className="mb-3">
+                            <Form.Label column sm="3">賣家 ID*</Form.Label>
+                            <Col sm="9">
+                                <Form.Control
+                                    name="Seller_ID"
+                                    type="number"
+                                    value={bookToAdd.Seller_ID}
+                                    onChange={handleChangeAddBooks}
+                                    placeholder="輸入賣家 ID"
                                     required
                                 />
                                 <Form.Control.Feedback type="invalid">
-                                    Invalid book publishing house.
+                                    請輸入有效的賣家 ID
                                 </Form.Control.Feedback>
                             </Col>
                         </Form.Group>
-                        <Form.Group
-                            as={Row}
-                            className="mb-3"
-                            controlId="validationCustom01"
-                        >
-                            <Form.Label column sm="3">
-                                Price*
-                            </Form.Label>
+
+                        <Form.Group as={Row} className="mb-3">
+                            <Form.Label column sm="3">分類</Form.Label>
                             <Col sm="9">
-                                <Form.Control
-                                    name="price"
-                                    type="text"
-                                    defaultValue={props.price}
-                                    onChange={handleChangeAddBooks}
-                                    placeholder="ex. : 50"
-                                    aria-label="ex. : 50"
-                                    aria-describedby="basic-addon1"
-                                    pattern="^\d+$"
-                                    required
-                                />
-                                <Form.Control.Feedback type="invalid">
-                                    Invalid price format.
-                                </Form.Control.Feedback>
+                                {allCategories.map((category) => (
+                                    <Form.Check
+                                        key={category.Category_ID}
+                                        type="checkbox"
+                                        label={category.Category_name}
+                                        onChange={(e) =>
+                                            handleCategoryChange(category.Category_ID, e.target.checked)
+                                        }
+                                    />
+                                ))}
                             </Col>
                         </Form.Group>
-                        <Form.Group
-                            as={Row}
-                            className="mb-3"
-                            controlId="validationCustom01"
-                        >
-                            <Form.Label column sm="3">
-                                Discount
-                            </Form.Label>
-                            <Col sm="9">
-                                <Form.Control
-                                    name="discount"
-                                    type="text"
-                                    defaultValue={props.discount}
-                                    onChange={handleChangeAddBooks}
-                                    placeholder="ex. : 5"
-                                    aria-label="ex. : 5"
-                                    pattern="^\d+$"
-                                    aria-describedby="basic-addon1"
-                                />
-                                <Form.Control.Feedback type="invalid">
-                                    Invalid discount format.
-                                </Form.Control.Feedback>
-                            </Col>
-                        </Form.Group>
-                        <Form.Group
-                            as={Row}
-                            className="mb-3"
-                            controlId="validationCustom01"
-                        >
-                            <Form.Label column sm="3">
-                                Quantity*
-                            </Form.Label>
-                            <Col sm="9">
-                                <Form.Control
-                                    name="quantity"
-                                    type="text"
-                                    defaultValue={props.quantity}
-                                    onChange={handleChangeAddBooks}
-                                    placeholder="ex. : 100"
-                                    aria-label="ex. : 100"
-                                    aria-describedby="basic-addon1"
-                                    pattern="^\d+$"
-                                    required
-                                />
-                                <Form.Control.Feedback type="invalid">
-                                    Invalid quantity format.
-                                </Form.Control.Feedback>
-                            </Col>
-                        </Form.Group>
-                        <Form.Group
-                            as={Row}
-                            className="mb-3"
-                            controlId="validationCustom01"
-                        >
-                            <Form.Label column sm="3">
-                                Availability date*
-                            </Form.Label>
-                            <Col sm="9">
-                                <Form.Control
-                                    type="text"
-                                    defaultValue={props.date}
-                                    onChange={handleChangeAddBooks}
-                                    name="availability_date"
-                                    placeholder="ex. : 2021-08-13"
-                                    aria-label="ex. : 2021-08-13"
-                                    aria-describedby="basic-addon1"
-                                    pattern="^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$"
-                                    required
-                                />
-                                <Form.Control.Feedback type="invalid">
-                                    Invalid date format.
-                                </Form.Control.Feedback>
-                            </Col>
-                        </Form.Group>
-                        <Form.Group
-                            as={Row}
-                            className="mb-3"
-                            controlId="validationCustom01"
-                        >
-                            <Form.Label column sm="3">
-                                Rating
-                            </Form.Label>
-                            <Col sm="9">
-                                <Form.Control
-                                    name="rating"
-                                    type="text"
-                                    defaultValue={props.rating}
-                                    onChange={handleChangeAddBooks}
-                                    className="form-control"
-                                    placeholder="ex. : Int between 0 and 5"
-                                    aria-label="ex. : Int between 0 and 5"
-                                    pattern="^[0-5]"
-                                />
-                                <Form.Control.Feedback type="invalid">
-                                    Invalid rating format.
-                                </Form.Control.Feedback>
-                            </Col>
-                        </Form.Group>
+
+                        <div className="d-flex justify-content-end">
+                            <Button variant="primary" type="submit">新增</Button>
+                            <Button variant="secondary" onClick={props.onHide} className="ms-2">取消</Button>
+                        </div>
                     </Form>
-                </div>
-            </Modal.Body>
-            <Modal.Footer>
-                <div className="add-new-buttons d-flex justify-content-between">
-                    <Button variant="danger" onClick={addBook}>
-                        Add
-                    </Button>
-                    <Button onClick={props.onHide}>Cancel</Button>
-                </div>
-            </Modal.Footer>
-        </Modal>
+                </Modal.Body>
+            </Modal>
+
+            <ToastContainer className="p-3 top-0 end-0">
+                <Toast
+                    onClose={() => setShowToast(false)}
+                    show={showToast}
+                    delay={3000}
+                    autohide
+                    bg={toastVariant}
+                >
+                    <Toast.Body className="text-white">{toastMessage}</Toast.Body>
+                </Toast>
+            </ToastContainer>
+        </>
     );
 }
 

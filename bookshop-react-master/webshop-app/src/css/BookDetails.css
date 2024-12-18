@@ -1,6 +1,9 @@
 .book-details-img {
-    height: 20rem;
-    padding-left: 30%;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    height: 100%;
+    max-width: 50%;
 }
 
 .details-title {
@@ -21,4 +24,13 @@
 
 .container-footer {
     height: calc(100vh - 66px - 72px - 200px)
+}
+
+.card-title{
+    color: cadetblue;
+    font-weight: 600;
+}
+
+.card-list-button{
+    margin: 1rem 0;
 }

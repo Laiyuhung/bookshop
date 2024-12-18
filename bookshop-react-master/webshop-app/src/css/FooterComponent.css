@@ -1,0 +1,44 @@
+.footer {
+    background-color: #39403b;
+    color: white;
+    padding: 10px 0;
+    text-align: center;
+    width: 100%;
+    position: sticky; /* 固定在視窗底部 */
+    bottom: 0;
+    z-index: 10;
+}
+
+.footer-absolute {
+    position: absolute; /* 僅在需要時應用 */
+    bottom: 0;
+}
+
+.footer-home {
+    background-color: #6e4d1c;
+}
+
+.footer-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.footer-list {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    gap: 10px;
+    margin: 5px 0;
+}
+
+.footer-item a {
+    color: white;
+    font-size: 20px;
+    transition: color 0.3s ease;
+}
+
+.footer-item a:hover {
+    color: #dc3545; /* 高亮顏色 */
+}

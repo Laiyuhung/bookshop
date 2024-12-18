@@ -15,11 +15,14 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "chart.js": "^4.4.7",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "express": "^4.17.1",
     "http-errors": "^1.8.1",
+    "mysql2": "^3.11.5",
     "react-bootstrap": "^2.2.1",
+    "react-chartjs-2": "^5.2.0",
     "uuid": "^8.3.2"
   },
   "devDependencies": {

@@ -50,8 +50,8 @@ function User({
                 <Card>
                     <Card.Body>
                         <p>Email: <span className="fw-light fst-italic">{email}</span></p>
-                        <p>Phone: <span className="fw-light fst-italic">{phone}</span></p>
-                        <p>Address: <span className="fw-light fst-italic">{address.street} street, {address.suite}, {address.zipcode}, {address.city}</span></p>
+                        <p>手機: <span className="fw-light fst-italic">{phone}</span></p>
+                        <p>地址: <span className="fw-light fst-italic">{address.street} street, {address.suite}, {address.zipcode}, {address.city}</span></p>
                     </Card.Body>
                 </Card>
             </div>

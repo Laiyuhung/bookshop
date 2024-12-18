@@ -4,360 +4,231 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import NavbarComponent from "../components/NavbarComponent";
 import FooterComponent from "../components/FooterComponent";
-import OrderSummary from "../components/cart/OrderSummary";
-import CustomerAddress from "../components/cart/CustomerAddress";
 import Toast from "react-bootstrap/Toast";
 import ToastContainer from "react-bootstrap/ToastContainer";
 import { BASE_URL } from "../Constants";
 
 function CartPage() {
-    const orderList = JSON.parse(localStorage.getItem("items"));
-    const userId = localStorage.getItem("user_id");
-    const isLoggedIn = userId ? true : false;
-
+    const [userId, setUserId] = useState(localStorage.getItem("user_id") || null);
     const [cartItems, setCartItems] = useState([]);
     const [totalCartValue, setTotalCartValue] = useState(0);
     const [cartItemsNumber, setCartItemsNumber] = useState(0);
-    const [validated, setValidated] = useState(false);
     const [show, setShow] = useState(false);
     const [error, setError] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
 
-    const [currentUser, setCurrentUser] = useState({
-        id: 1,
-        name: "N/A",
-        username: "N/A",
-        email: "N/A",
-        password: "N/A",
-        role: "N/A",
-        address: {
-            street: "N/A",
-            suite: "N/A",
-            city: "N/A",
-            zipcode: "000000"
-        },
-        phone: "000000000"
-    });
-    const [deliveryAddress, setDeliveryAddress] = useState({
-        street: "",
-        suite: "",
-        city: "",
-        zipcode: ""
-    });
-    const [billingAddress, setBillingAddress] = useState({
-        street: "",
-        suite: "",
-        city: "",
-        zipcode: ""
-    });
-
-    const changeQuantity = (id, type) => {
-        let isIncrease = type === "increase" ? true : false;
-        let array = [...cartItems];
-        const cartItemIndex = array.findIndex((item) => item.id === id);
-        let condition = isIncrease
-            ? array[cartItemIndex].quantity < 5
-            : array[cartItemIndex].quantity > 1;
-        let toastMessage = isIncrease
-            ? "You have exceeded the maximum quantity available for this product."
-            : "You can remove items by clicking on the trash icon.";
-
-        if (condition) {
-            if (isIncrease) {
-                setCartItemsNumber(cartItemsNumber + 1);
-            } else {
-                setCartItemsNumber(cartItemsNumber - 1);
-            }
-            array[cartItemIndex].quantity = isIncrease
-                ? array[cartItemIndex].quantity + 1
-                : array[cartItemIndex].quantity - 1;
-            setCartItems(array);
-            //set new cart value
-            setTotalCartValue(
-                totalCartValue -
-                    array[cartItemIndex].quantity * array[cartItemIndex].price
-            );
-            //set local storage with new array
-            let orders = array.map((item) => arrayToLocalStorage(item));
-            localStorage.setItem("items", JSON.stringify(orders));
-        } else {
+    // 獲取購物車資料
+    const fetchCartItems = async () => {
+        if (!userId) {
+            setErrorMessage("用戶未登入，請登入後再試！");
             setError(true);
-            setErrorMessage(toastMessage);
+            setShow(true);
+            return;
+        }
+
+        try {
+            const response = await fetch(`${BASE_URL}/cart/${userId}`);
+            if (!response.ok) throw new Error("無法獲取購物車數據");
+
+            const data = await response.json();
+            setCartItems(data);
+
+            // 計算總價和商品數量
+            const total = data.reduce(
+                (acc, item) => acc + parseFloat(item.Price) * item.Quantity,
+                0
+            );
+            const count = data.reduce((acc, item) => acc + item.Quantity, 0);
+
+            setTotalCartValue(total);
+            setCartItemsNumber(count);
+        } catch (error) {
+            console.error("Error fetching cart items:", error);
+            setErrorMessage("無法獲取購物車數據，請稍後再試！");
+            setError(true);
             setShow(true);
         }
     };
 
-    const deleteCartItem = (idToDelete) => {
-        let array = [...cartItems];
-        let foundIndex = array.findIndex((item) => item.id === idToDelete);
-        let quantity = array[foundIndex].quantity;
-        if (foundIndex !== -1) {
-            array.splice(foundIndex, 1);
-            if (array.length > 0) {
-                const orders = array.map((item) => arrayToLocalStorage(item));
-                localStorage.setItem("items", JSON.stringify(orders));
-            } else {
-                localStorage.removeItem("items");
-            }
-            setCartItems(array);
-            setCartItemsNumber(cartItemsNumber - quantity);
-        }
-    };
-
-    const arrayToLocalStorage = ({ id, name, price, quantity }) => ({
-        id,
-        name,
-        price,
-        quantity
-    });
-
-    const handleChangeAddress = (e, type) => {
-        const target = e.target;
-        const value = target.value;
-        const name = target.name;
-        if (type === "delivery") {
-            setDeliveryAddress((previous) => {
-                return { ...previous, [name]: value };
-            });
+    useEffect(() => {
+        if (userId) {
+            fetchCartItems();
         } else {
-            setBillingAddress((previous) => {
-                return { ...previous, [name]: value };
-            });
+            setErrorMessage("用戶未登入，請登入後再試！");
+            setError(true);
+            setShow(true);
         }
-    };
+    }, [userId]);
 
-    const placeOrder = (e) => {
-        const form = e.currentTarget;
-        setValidated(true);
-        e.preventDefault();
-        const orders = cartItems.map((item) => arrayToLocalStorage(item));
+    // 修改商品數量
+    const updateQuantity = async (productId, type) => {
+        const isIncrease = type === "increase";
 
-        let order = {
-            data: {
-                user: currentUser.id,
-                delivery_address: { ...deliveryAddress },
-                billing_address: { ...billingAddress },
-                items: orders,
-                total: totalCartValue
-            }
-        };
+        // 找到對應的商品
+        const item = cartItems.find((item) => item.Product_ID === productId);
 
-        if (form.checkValidity()) {
-            fetch(`${BASE_URL}/orders`, {
-                method: "post",
+        // 如果是減少數量且已經為 1，直接返回
+        if (!isIncrease && item.Quantity <= 1) {
+            console.log("數量已達到最小值，無法繼續減少。");
+            return;
+        }
+
+        try {
+            const response = await fetch(`${BASE_URL}/cart`, {
+                method: "POST",
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
                 },
-                body: JSON.stringify(order)
-            }).then((data) => {
-                if (data.status === 200) {
-                    setError(false);
-                    setErrorMessage("");
-                    setShow(true);
-                    setCartItemsNumber(0);
-                    setTimeout(() => {
-                        localStorage.removeItem("items");
-                    });
-                } else {
-                    setError(true);
-                    setErrorMessage("An error occured! Please try again.");
-                    setShow(true);
-                }
+                body: JSON.stringify({
+                    memberId: userId,
+                    productId: productId,
+                    quantity: isIncrease ? 1 : -1,
+                }),
             });
-        }
-    };
 
-    const getUser = (id) => {
-        fetch(`${BASE_URL}/users/${id}`)
-            .then((response) => response.json())
-            .then((data) => {
-                setCurrentUser(data);
-                setBillingAddress(data.address);
-                setDeliveryAddress(data.address);
-            })
-            .catch((error) => {
-                console.error("Error:", error);
-            });
-    };
+            if (!response.ok) throw new Error("數量更新失敗");
 
-    useEffect(() => {
-        let sum = 0;
-        cartItems.forEach((item) => {
-            sum += item.quantity * item.price;
-        });
-        setTotalCartValue(sum);
-    }, [isLoggedIn, cartItems]);
+            // 更新本地狀態
+            const updatedCart = cartItems.map((item) =>
+                item.Product_ID === productId
+                    ? {
+                          ...item,
+                          Quantity: isIncrease
+                              ? item.Quantity + 1
+                              : Math.max(item.Quantity - 1, 1),
+                      }
+                    : item
+            );
+            setCartItems(updatedCart);
 
-    useEffect(() => {
-        if (orderList && isLoggedIn) {
-            //set address fields
-            getUser(userId);
-            //add a value to each cartItem
-            const orders = orderList.map((item) => ({
-                ...item,
-                value: item.price * item.quantity,
-                id: item.id
-            }));
-            setCartItems(orders);
-        } else if (orderList) {
-            const orders = orderList.map((item) => ({
-                ...item,
-                value: item.price * item.quantity,
-                id: item.id
-            }));
-            setCartItems(orders);
-            let sum = 0;
-            cartItems.forEach((item) => {
-                sum += item.quantity * item.price;
-            });
-            setTotalCartValue(sum);
-        }
-
-        if (orderList) {
-            let counter = 0;
-            for (let i = 0; i < orderList.length; i++) {
-                counter = counter + orderList[i].quantity;
+            // 更新總價和商品數量
+            if (item) {
+                const updatedPrice = parseFloat(item.Price);
+                const quantityChange = isIncrease ? 1 : -1;
+                setTotalCartValue((prev) => prev + updatedPrice * quantityChange);
+                setCartItemsNumber((prev) => prev + quantityChange);
             }
-            setCartItemsNumber(counter);
+        } catch (error) {
+            console.error("Error updating quantity:", error);
+            setErrorMessage("無法更新商品數量，請稍後再試！");
+            setError(true);
+            setShow(true);
         }
-    }, []);
+    };
 
-    //no items in cart and not logged in
-    if (!orderList) {
+    // 刪除商品
+    const deleteCartItem = async (productId) => {
+        try {
+            const response = await fetch(`${BASE_URL}/cart/product/${productId}?memberId=${userId}`, {
+                method: "DELETE",
+            });
+    
+            if (!response.ok) throw new Error("刪除商品失敗");
+    
+            const updatedCart = cartItems.filter((item) => item.Product_ID !== productId);
+            setCartItems(updatedCart);
+    
+            const deletedItem = cartItems.find((item) => item.Product_ID === productId);
+            if (deletedItem) {
+                setCartItemsNumber((prev) => prev - deletedItem.Quantity);
+                setTotalCartValue(
+                    (prev) =>
+                        prev - parseFloat(deletedItem.Price) * deletedItem.Quantity
+                );
+            }
+        } catch (error) {
+            console.error("Error deleting cart item:", error);
+            setErrorMessage("刪除商品失敗，請稍後再試！");
+            setError(true);
+            setShow(true);
+        }
+    };
+    
+
+    if (cartItems.length === 0 && !userId) {
         return (
             <>
                 <NavbarComponent cartItemsNumber={cartItemsNumber} />
                 <Container className="mt-5 pt-5 text-center">
-                    <h4>Your cart is empty</h4>
-
-                    <Link to="/books">Continue shopping</Link>
+                    <h4>您的購物車無商品</h4>
+                    <Link to="/books">繼續購物</Link>
                 </Container>
-                <div className="cart-footer">
-                    <FooterComponent />
-                </div>
-            </>
-        );
-    }
-
-    const orderSummary = (
-        <OrderSummary
-            cartItems={cartItems}
-            totalCartValue={totalCartValue}
-            changeQuantity={changeQuantity}
-            deleteCartItem={deleteCartItem}
-        />
-    );
-
-    //items in cart and not logged in
-    if (orderList && !isLoggedIn) {
-        return (
-            <>
-                <NavbarComponent cartItemsNumber={cartItemsNumber} />
-                <Container className="mt-5 pt-5 text-center cart-container">
-                    {orderSummary}
-                </Container>
-                <ToastContainer className="p-3 bottom-0 end-0">
-                    <Toast
-                        onClose={() => setShow(false)}
-                        show={show}
-                        delay={3000}
-                        autohide
-                    >
-                        {error ? (
-                            <>
-                                <Toast.Header>
-                                    <img
-                                        src="holder.js/20x20?text=%20"
-                                        className="rounded me-2"
-                                        alt=""
-                                    />
-                                    <strong className="me-auto text-danger">
-                                        Error!
-                                    </strong>
-                                </Toast.Header>
-                                <Toast.Body>{errorMessage}</Toast.Body>
-                            </>
-                        ) : (
-                            <>
-                                <Toast.Header>
-                                    <img
-                                        src="holder.js/20x20?text=%20"
-                                        className="rounded me-2"
-                                        alt=""
-                                    />
-                                    <strong className="me-auto text-success">
-                                        Success!
-                                    </strong>
-                                </Toast.Header>
-                                <Toast.Body>Your ordered!</Toast.Body>
-                            </>
-                        )}
-                    </Toast>
-                </ToastContainer>
                 <FooterComponent />
             </>
         );
     }
-
-    //items in cart and logged in
-    const address = (
-        <CustomerAddress
-            placeOrder={placeOrder}
-            handleChangeAddress={handleChangeAddress}
-            billingAddress={billingAddress}
-            deliveryAddress={deliveryAddress}
-            validated={validated}
-        />
-    );
 
     return (
         <>
             <NavbarComponent cartItemsNumber={cartItemsNumber} />
-            <>
-                <ToastContainer className="p-3 bottom-0 end-0">
-                    <Toast
-                        onClose={() => setShow(false)}
-                        show={show}
-                        delay={3000}
-                        autohide
-                    >
-                        {error ? (
-                            <>
-                                <Toast.Header>
-                                    <img
-                                        src="holder.js/20x20?text=%20"
-                                        className="rounded me-2"
-                                        alt=""
-                                    />
-                                    <strong className="me-auto text-danger">
-                                        Error!
-                                    </strong>
-                                </Toast.Header>
-                                <Toast.Body>{errorMessage}</Toast.Body>
-                            </>
-                        ) : (
-                            <>
-                                <Toast.Header>
-                                    <img
-                                        src="holder.js/20x20?text=%20"
-                                        className="rounded me-2"
-                                        alt=""
-                                    />
-                                    <strong className="me-auto text-success">
-                                        Success!
-                                    </strong>
-                                </Toast.Header>
-                                <Toast.Body>Your ordered!</Toast.Body>
-                            </>
-                        )}
-                    </Toast>
-                </ToastContainer>
-                <Container className="mt-5 pt-5 text-center">
-                    {orderSummary}
-                    {orderList && isLoggedIn && address}
-                </Container>
-                <FooterComponent />
-            </>
+            <Container className="mt-5 pt-5 text-center">
+                {cartItems.length === 0 ? (
+                    <h4>您的購物車無商品</h4>
+                ) : (
+                    <>
+                        <h2>購物車</h2>
+                        <table className="table">
+                            <thead>
+                                <tr>
+                                    <th>商品名稱</th>
+                                    <th>價格</th>
+                                    <th>數量</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {cartItems.map((item) => (
+                                    <tr key={item.Product_ID}>
+                                        <td>{item.Product_name}</td>
+                                        <td>${parseFloat(item.Price).toFixed(2)}</td>
+                                        <td>
+                                            <button
+                                                className="btn btn-sm btn-secondary"
+                                                onClick={() =>
+                                                    updateQuantity(item.Product_ID, "decrease")
+                                                }
+                                            >
+                                                -
+                                            </button>
+                                            <span className="mx-2">{item.Quantity}</span>
+                                            <button
+                                                className="btn btn-sm btn-primary"
+                                                onClick={() =>
+                                                    updateQuantity(item.Product_ID, "increase")
+                                                }
+                                            >
+                                                +
+                                            </button>
+                                        </td>
+                                        <td>
+                                            <button
+                                                className="btn btn-danger btn-sm"
+                                                onClick={() => deleteCartItem(item.Product_ID)}
+                                            >
+                                                刪除
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        <h4>總金額: ${totalCartValue.toFixed(2)}</h4>
+                        <Link to="/checkout" className="btn btn-primary">
+                            前往結帳
+                        </Link>
+                    </>
+                )}
+            </Container>
+            <FooterComponent />
+            <ToastContainer className="p-3 bottom-0 end-0">
+                <Toast onClose={() => setShow(false)} show={show} delay={3000} autohide>
+                    {error ? (
+                        <Toast.Body className="text-danger">{errorMessage}</Toast.Body>
+                    ) : (
+                        <Toast.Body className="text-success">操作成功！</Toast.Body>
+                    )}
+                </Toast>
+            </ToastContainer>
         </>
     );
 }

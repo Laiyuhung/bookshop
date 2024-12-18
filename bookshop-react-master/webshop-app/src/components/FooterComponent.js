@@ -1,43 +1,60 @@
-import { FaFacebookSquare } from "react-icons/fa";
-import { FaTwitterSquare } from "react-icons/fa";
-import { FaLinkedin } from "react-icons/fa";
-import { FaInstagramSquare } from "react-icons/fa";
+import React from "react";
+import { FaFacebookSquare, FaTwitterSquare, FaLinkedin, FaInstagramSquare } from "react-icons/fa";
+import "../css/FooterComponent.css"; // 確保 CSS 文件路徑正確
 
-function FooterComponent(props) {
+function FooterComponent({ position, page }) {
     return (
-        <div
-            className={
-                props.position === "absolute"
-                    ? props.page === "Home"
-                        ? "footer footer-home footer-absolute"
-                        : "footer footer-absolute"
-                    : "footer"
-            }
+        <footer
+            className={`footer ${position === "absolute" ? "footer-absolute" : ""} ${
+                page === "Home" ? "footer-home" : ""
+            }`}
         >
-            <p className="copyright">© 2022 BT-BookStore | Follow us on</p>
-            <ul className="footer-list">
-                <li className="footer-item">
-                    <a href="#" target="_blank" rel="noreferrer">
-                        <FaFacebookSquare />
-                    </a>
-                </li>
-                <li className="footer-item">
-                    <a href="#" target="_blank" rel="noreferrer">
-                        <FaTwitterSquare />
-                    </a>
-                </li>
-                <li className="footer-item">
-                    <a href="#" target="_blank" rel="noreferrer">
-                        <FaLinkedin />
-                    </a>
-                </li>
-                <li className="footer-item">
-                    <a href="#" target="_blank" rel="noreferrer">
-                        <FaInstagramSquare />
-                    </a>
-                </li>
-            </ul>
-        </div>
+            <div className="footer-content">
+                <p className="copyright">© 2024 默窩 All Copyrights Reserved</p>
+                <ul className="footer-list">
+                    <li className="footer-item">
+                        <a
+                            href="https://www.facebook.com"
+                            target="_blank"
+                            rel="noreferrer"
+                            aria-label="Facebook"
+                        >
+                            <FaFacebookSquare />
+                        </a>
+                    </li>
+                    <li className="footer-item">
+                        <a
+                            href="https://www.twitter.com"
+                            target="_blank"
+                            rel="noreferrer"
+                            aria-label="Twitter"
+                        >
+                            <FaTwitterSquare />
+                        </a>
+                    </li>
+                    <li className="footer-item">
+                        <a
+                            href="https://www.linkedin.com"
+                            target="_blank"
+                            rel="noreferrer"
+                            aria-label="LinkedIn"
+                        >
+                            <FaLinkedin />
+                        </a>
+                    </li>
+                    <li className="footer-item">
+                        <a
+                            href="https://www.instagram.com"
+                            target="_blank"
+                            rel="noreferrer"
+                            aria-label="Instagram"
+                        >
+                            <FaInstagramSquare />
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </footer>
     );
 }
 

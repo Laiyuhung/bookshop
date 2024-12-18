@@ -1,52 +1,66 @@
-let createError = require("http-errors");
-let express = require("express");
-let path = require("path");
-let cors = require("cors");
-let logger = require("morgan");
-let cookieParser = require("cookie-parser");
+const createError = require("http-errors");
+const express = require("express");
+const path = require("path");
+const cors = require("cors");
+const logger = require("morgan");
+const cookieParser = require("cookie-parser");
 const port = 3001;
 
-let usersRouter = require("./routes/users");
-let booksRouter = require("./routes/books");
-let ordersRouter = require("./routes/orders");
-let authRouter = require("./routes/auth");
+// 引入各個路由
+const usersRouter = require("./routes/users");
+const booksRouter = require("./routes/books");
+const ordersRouter = require("./routes/orders");
+const authRouter = require("./routes/auth");
+const cartRouter = require("./routes/cart");
+const couponsRouter = require("./routes/coupons"); // 新增 coupons 路由
+const categoriesRouter = require("./routes/categories"); // 引入新路由檔案
+const administratorRouter = require("./routes/administrator");
+const vendorRouter = require("./routes/vendors");
+const revenuesRouter = require("./routes/revenues");
 
-let app = express();
+const app = express();
 
-// view engine setup
+// 設置視圖引擎
 app.set("views", path.join(__dirname, "views"));
 
+// 中介軟體配置
 app.use(cors());
 app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, "/public")));
+app.use(express.static(path.join(__dirname, "public")));
 
+// 註冊路由
 app.use("/users", usersRouter);
-app.use("/books", booksRouter.router);
+app.use("/books", booksRouter);
 app.use("/orders", ordersRouter);
 app.use("/auth", authRouter);
+app.use("/cart", cartRouter);
+app.use("/coupons", couponsRouter); // 註冊 coupons 路由
+app.use("/categories", categoriesRouter); // 設定路由的基礎路徑
+app.use("/administrators", administratorRouter);
+app.use("/vendors", vendorRouter);
+app.use("/revenues", revenuesRouter);
 
-// catch 404 and forward to error handler
-app.use(function (req, res, next) {
+
+// 處理 404 錯誤
+app.use((req, res, next) => {
     next(createError(404));
 });
 
-// error handler
-app.use(function (err, req, res, next) {
-    // set locals, only providing error in development
-    console.log(err);
-    res.locals.message = err.message;
-    res.locals.error = req.app.get("env") === "development" ? err : {};
-
-    // render the error page
-    res.status(err.status || 500);
-    //res.render('error');
+// 全局錯誤處理
+app.use((err, req, res, next) => {
+    console.error(err.stack); // 打印錯誤堆疊
+    res.status(err.status || 500).send({
+        message: err.message || "Internal Server Error",
+        status: err.status || 500,
+    });
 });
 
+// 啟動伺服器
 app.listen(port, () => {
-    console.log(`Example app listening at http://localhost:${port}`);
+    console.log(`Server running at http://localhost:${port}`);
 });
 
 module.exports = app;

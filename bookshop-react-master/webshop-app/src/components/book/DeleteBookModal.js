@@ -15,13 +15,13 @@ function DeleteBookModal({ onHide, deleteBook, show, quantity }) {
                     id="contained-modal-title-vcenter"
                     style={{ fontSize: "20px" }}
                 >
-                    Are you sure you want to delete this book?
+                    確定要刪除這本書嗎?
                 </Modal.Title>
             </Modal.Header>
             <Modal.Body></Modal.Body>
             <Modal.Footer style={{ justifyContent: "space-between" }}>
                 <Button variant="secondary" onClick={onHide}>
-                    Close
+                    取消
                 </Button>
                 <Button
                     variant="danger"
@@ -30,7 +30,7 @@ function DeleteBookModal({ onHide, deleteBook, show, quantity }) {
                         onHide();
                     }}
                 >
-                    Delete Book
+                    確定並刪除
                 </Button>
             </Modal.Footer>
         </Modal>

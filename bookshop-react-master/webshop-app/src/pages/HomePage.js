@@ -30,15 +30,14 @@ function HomePage() {
                         <Col xs={1}></Col>
                         <Col md={4} sm={8} xs={11}>
                             <h3 className="text-white">
-                                Take advantage of our offers and purchase your
-                                desired book at the best prices!
+                                全台最便宜的書就在這裡!
                             </h3>
                             <LinkContainer to="/books">
                                 <Button
                                     variant="outline-light"
                                     className="mt-2"
                                 >
-                                    See more
+                                    更多
                                 </Button>
                             </LinkContainer>
                         </Col>

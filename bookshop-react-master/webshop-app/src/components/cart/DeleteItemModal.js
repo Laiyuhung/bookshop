@@ -8,14 +8,14 @@ function DeleteItemModal({deleteCartItemAndModalClose, ...props}) {
       centered
     >
       <Modal.Header closeButton>
-        <Modal.Title>Are you sure you want to delete this item?</Modal.Title>
+        <Modal.Title>您確定要從購物車移除此書籍?</Modal.Title>
       </Modal.Header>
       <Modal.Footer>
         <Button variant="secondary" onClick={props.onHide}>
-          Close
+          取消
         </Button>
         <Button variant="danger" onClick={deleteCartItemAndModalClose}>
-          Delete item
+          移除
         </Button>
       </Modal.Footer>
     </Modal>

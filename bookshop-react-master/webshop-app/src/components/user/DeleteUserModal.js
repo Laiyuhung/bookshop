@@ -13,7 +13,7 @@ function DeleteUserModal({ onHide, deleteUser, show }) {
         >
             <Modal.Header closeButton>
                 <Modal.Title id="contained-modal-title-vcenter" style={{ fontSize: "20px" }}>
-                    Are you sure you want to delete this user?
+                    確定要刪除此會員嗎?
                 </Modal.Title>
             </Modal.Header>
             <Modal.Body>

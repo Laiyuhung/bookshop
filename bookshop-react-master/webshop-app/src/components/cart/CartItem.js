@@ -3,7 +3,7 @@ function CartItem({ cartItem, changeQuantity, showDeleteModal }) {
     <div className="p-2 item-container">
       <h4 className="item-container-product">{cartItem.name}</h4>
       <div className="quantity-div">
-        <p>Quantity</p>
+        <p>數量</p>
         <div className="select-quantity">
           <span>
             <button
@@ -31,9 +31,9 @@ function CartItem({ cartItem, changeQuantity, showDeleteModal }) {
         </div>
       </div>
       <div className="price-div">
-        <p>Price</p>
+        <p>價格</p>
         <p className="price">
-          {cartItem.quantity} x {cartItem.price} = {cartItem.quantity * cartItem.price} RON
+          {cartItem.quantity} x ${cartItem.price} = ${cartItem.quantity * cartItem.price} 元
         </p>
       </div>
       <div className="remove-div">

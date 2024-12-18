@@ -39,6 +39,7 @@ export default function Order({
   order,
   email,
   phone,
+  payment,
   date,
   total,
   deliveryAddress,
@@ -64,7 +65,7 @@ export default function Order({
       <Card>
         <Card.Header>
           <p className="fw-bold">
-            Order
+            訂單編號 
             <span className="text-success"> {id}</span>
           </p>
           <ContextAwareToggle eventKey="0"></ContextAwareToggle>
@@ -72,41 +73,42 @@ export default function Order({
         <Accordion.Collapse eventKey="0">
           <Card.Body>
             <h6>
-              Email: <span className="fw-light fst-italic">{email}</span>
-            </h6>
-            <h6>
-              Phone: <span className="fw-light fst-italic">{phone}</span>
-            </h6>
-            <h6>
-              Delivery Address:
-              <span className="fw-light fst-italic">
-                {" "}
-                {deliveryAddress.street} street, {deliveryAddress.suite},{" "}
-                {deliveryAddress.zipcode}, {deliveryAddress.city}
-              </span>
-            </h6>
-            <h6>
-              Billing Address:
-              <span className="fw-light fst-italic">
-                {" "}
-                {billingAddress.street} street, {billingAddress.suite},{" "}
-                {billingAddress.zipcode}, {billingAddress.city}
-              </span>
-            </h6>
-            <h6>
-              Ordered on:
+              訂單成立時間:
               <span className="fw-light fst-italic"> {dateParsed}</span>
             </h6>
-            <h6>Order:</h6>
+            <h6>
+              付款方式: <span className="fw-light fst-italic">{payment}</span>
+            </h6>
+            <h6>
+              配送地址:
+              <span className="fw-light fst-italic">
+                {" "}
+                {/* {deliveryAddress.street} street, {deliveryAddress.suite},{" "}
+                {deliveryAddress.zipcode}, {deliveryAddress.city} */}
+                {deliveryAddress.zipcode}{" "} {deliveryAddress.street} {deliveryAddress.city}  {deliveryAddress.suite}
+                
+              </span>
+            </h6>
+            <h6>
+              帳單地址:
+              <span className="fw-light fst-italic">
+                {" "}
+                {/* {billingAddress.street} street, {billingAddress.suite},{" "}
+                {billingAddress.zipcode}, {billingAddress.city} */}
+                {billingAddress.zipcode}{" "} {billingAddress.street} {billingAddress.city}  {billingAddress.suite}
+              </span>
+            </h6>
+            
+            <h6>訂單內容:</h6>
             {order.order.map((order) => (
               <div className="d-flex justify-content-between" key={count++}>
                 <div className="order-name">- {order.name}</div>
-                <div className="order-name">Price:{order.price} RON</div>
-                <div className="order-name">Qty: {order.quantity}</div>
+                <div className="order-name">售價: ${order.price} 元</div>
+                <div className="order-name">數量: {order.quantity}</div>
               </div>
             ))}
             <br />
-            <h6>Total price: {total} RON</h6>
+            <h4>總金額: ${total} 元</h4>
           </Card.Body>
         </Accordion.Collapse>
       </Card>

@@ -7,8 +7,8 @@
   font-size: 20px;
   font-weight: 700;
   margin-bottom: 8px;
-  background-color: #dc3545;
-  color: white;
+  background-color: #3d35dc;
+  color: rgb(255, 255, 255);
   padding: 10px 20px 10px 20px;
   border-radius: 10px 20px;
   margin-right: 5px;
@@ -72,6 +72,7 @@
 
 .price {
   font-weight: 700;
+  color: red;
 }
 
 .delete-item {
@@ -110,3 +111,22 @@
 .cart-container {
   min-height: calc(100vh - 300px);
 }
+
+.payment-method-box {
+  border: 2px solid #adadad;  /* Add a light border */
+  border-radius: 8px;         /* Round the corners */
+  padding: 15px;              /* Add some space inside the box */
+  background-color: white;    /* Light background color */
+  margin-top: 20px;           /* Add some spacing from other elements */
+  width: 100%;                /* Make the box take full width */
+  max-width: 600px;           /* Set a max width if needed */
+  text-align: left;           /* Align the content to the left */
+}
+
+.payment-method-box legend {
+  font-size: 24px;            /* Make the title larger */
+  font-weight: bold;          /* Bold the title */
+  padding: 0 10px;            /* Add some padding around the legend */
+  color: #333;                /* Darker color for better readability */
+}
+

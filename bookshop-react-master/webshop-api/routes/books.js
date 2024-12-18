@@ -1,318 +1,274 @@
-const express = require("express");
-const fs = require("fs");
-const { ServerResponse } = require("http");
+const express = require('express');
+const mysql = require('mysql2/promise');
 const router = express.Router();
 
-router.get("/", function (req, res, next) {
-    // get books array
-    let books = JSON.parse(fs.readFileSync("./data/books.json", "utf8"));
-    if (books) {
-        // handle success
+// Database connection
+const db = mysql.createPool({
+    host: 'localhost',
+    user: 'root',
+    password: '',
+    database: 'project'
+});
 
-        // get filters array
-        let filters = {};
-        filters.type = Array.from(arrayCheckboxes("category", books));
-        filters.publishing_house = Array.from(
-            arrayCheckboxes("publishing_house", books)
-        );
+// Get all books
+router.get('/', async (req, res) => {
+    const { status, search } = req.query;
 
-        // set selected filters from query
-        let selectedFilters = {};
-        selectedFilters.search = req.query.search || "";
-        selectedFilters.sort = req.query.sort || "";
-        selectedFilters.category = req.query.category || [];
-        selectedFilters.price_range = req.query.price_range || "";
-        selectedFilters.minimum_rating = req.query.minimum_rating || 0;
-        selectedFilters.publishing_house = req.query.publishing_house || [];
-        selectedFilters.in_stock = req.query.stock_yes || false;
+    try {
+        let query = 'SELECT * FROM PRODUCT';
+        const params = [];
 
-        // filter books array by query params
-        let filterFunction = (item) =>
-            searchProducts(item, req.query.search) &&
-            getProductsByCategory(item, req.query.category) &&
-            getProductsByPriceRange(item, req.query.price_range) &&
-            getProductsByPublishingHouse(item, req.query.publishing_house) &&
-            getProductsByRating(item, req.query.minimum_rating) &&
-            getProductsByStock(item, req.query.stock_yes);
+        if (status) {
+            query += ' WHERE Status = ?';
+            params.push(status);
+        }
 
-        let products = filterProducts(
-            books,
-            filterFunction,
-            getSorted(req.query.sort)
-        );
+        if (search) {
+            query += params.length ? ' AND' : ' WHERE';
+            query += ' Product_name LIKE ?';
+            params.push(`%${search}%`);
+        }
 
-        let response = {
-            products: products,
-            filters: filters,
-            selectedFilters: selectedFilters
-        };
+        const [rows] = await db.execute(query, params);
+        res.status(200).json(rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Internal Server Error" });
+    }
+});
+router.get('/one/:id', async (req, res) => {
+    const { id } = req.params; // 從 URL 參數獲取 id
+    const { status, search } = req.query; // 從 query string 獲取篩選條件
 
-        res.status(200).json(response);
-    } else {
-        res.status(404).send({ message: "404 Not Found" });
+    try {
+        let query = 'SELECT * FROM PRODUCT WHERE Seller_ID = ?';
+        const params = [id]; // 初始參數包含 Seller_ID
+
+        if (status) {
+            query += ' AND Status = ?';
+            params.push(status);
+        }
+
+        if (search) {
+            query += ' AND Product_name LIKE ?';
+            params.push(`%${search}%`);
+        }
+
+        const [rows] = await db.execute(query, params);
+        res.status(200).json(rows);
+    } catch (error) {
+        console.error("Error fetching seller products:", error);
+        res.status(500).send({ message: "Internal Server Error" });
     }
 });
 
-router.get("/:id", function (req, res, next) {
-    let content = JSON.parse(fs.readFileSync("./data/books.json", "utf8"));
-    let book = content.find((item) => item["name"] == req.params.id);
-    if (book) {
-        res.status(200).json(book);
-    } else {
-        res.status(404).send({ message: "404 Not Found" });
+
+// Get books by status (only available)
+router.get('/status/available', async (req, res) => {
+    const { categories, search } = req.query;
+
+    try {
+        let query = `SELECT * FROM PRODUCT WHERE Status = ?`;
+        const params = ['上架'];
+
+        // 處理分類篩選
+        if (categories) {
+            const decodedCategories = decodeURIComponent(categories); // 解碼中文參數
+            const categoriesArray = decodedCategories.split(',');
+            const placeholders = categoriesArray.map(() => '?').join(',');
+            query += ` AND Product_ID IN (
+                SELECT DISTINCT Product_ID 
+                FROM PRODUCT_CATEGORY pc
+                JOIN BOOK_CATEGORY bc ON pc.Category_ID = bc.Category_ID
+                WHERE bc.Category_name IN (${placeholders})
+            )`;
+            params.push(...categoriesArray);
+        }
+
+        // 處理書籍名稱搜尋
+        if (search) {
+            query += ` AND Product_name LIKE ?`;
+            params.push(`%${search}%`);
+        }
+
+        const [rows] = await db.execute(query, params);
+        res.status(200).json(rows);
+    } catch (error) {
+        console.error("Error fetching available books with filters:", error);
+        res.status(500).send({ message: "Internal Server Error" });
     }
 });
 
-router.post("/", function (req, res, next) {
-    let content = JSON.parse(fs.readFileSync("./data/books.json", "utf8"));
-    if (
-        req.body.name &&
-        req.body.author &&
-        req.body.category &&
-        req.body.publishing_house &&
-        req.body.price &&
-        req.body.quantity &&
-        req.body.availability_date &&
-        req.body.image
-    ) {
-        let product = {
-            id: content[content.length - 1].id + 1,
-            name: req.body.name,
-            author: req.body.author,
-            category: req.body.category,
-            publishing_house: req.body.publishing_house,
-            price: Number(req.body.price),
-            discount: Number(req.body.discount),
-            quantity: Number(req.body.quantity),
-            availability_date: req.body.availability_date,
-            rating: Number(req.body.rating),
-            image: req.body.image
-        };
 
-        if (validateProduct(product)) {
-            let verifyProduct = content.find(
-                (item) =>
-                    item.name == product.name &&
-                    item.category == product.category &&
-                    item.author == product.author
-            );
-            if (verifyProduct) {
-                res.status(403).send({ message: "Product already exist." });
-            } else {
-                content.push(product);
-                fs.writeFile(
-                    "./data/books.json",
-                    JSON.stringify(content),
-                    function (err) {
-                        if (err) {
-                            throw err;
-                        } else {
-                            res.status(200).send({
-                                message: `Adding book ${req.body.name}`
-                            });
-                        }
-                    }
-                );
+
+
+
+// Get book details by name
+router.get('/:slug', async (req, res) => {
+    const { slug } = req.params;
+
+    try {
+        const decodedSlug = decodeURIComponent(slug);
+        console.log(`Fetching details for book: ${decodedSlug}`);
+
+        const [book] = await db.execute('SELECT * FROM PRODUCT WHERE Product_name = ?', [decodedSlug]);
+
+        if (!book.length) {
+            return res.status(404).send({ message: 'Book not found' });
+        }
+
+        res.status(200).send(book[0]);
+    } catch (error) {
+        console.error('Error fetching book details:', error);
+        res.status(500).send({ message: 'Internal Server Error' });
+    }
+});
+
+// Create a new book
+router.post('/', async (req, res) => {
+    const { Product_name, Description, Author, Price, Stock, Status, Product_image, Seller_ID } = req.body;
+
+    // 檢查必要欄位
+    if (!Product_name || !Price || Stock === undefined || !Status) {
+        return res.status(400).send({ message: "缺少必要欄位" });
+    }
+
+    try {
+        // 檢查 Seller_ID 是否存在
+        if (Seller_ID) {
+            const [vendorCheck] = await db.execute('SELECT 1 FROM VENDOR WHERE Vendor_ID = ?', [Seller_ID]);
+            if (vendorCheck.length === 0) {
+                return res.status(400).send({ message: "Seller_ID 不存在" });
             }
-        } else {
-            res.status(400).send({ message: "Bad request" });
         }
-    } else {
-        res.status(400).send({ message: "Please complete all fields" });
+
+        // 插入資料，自動生成 Product_ID 和 New_arrival_date
+        const [result] = await db.execute(
+            `INSERT INTO PRODUCT (Product_name, Description, Author, Price, Stock, Status, Product_image, Seller_ID) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                Product_name,
+                Description || null,
+                Author || null,
+                Price,
+                Stock,
+                Status,
+                Product_image || null,
+                Seller_ID || null,
+            ]
+        );
+
+        res.status(201).send({ message: "Product created successfully", productId: result.insertId });
+    } catch (error) {
+        console.error("Error inserting product:", error);
+        res.status(500).send({ message: "Internal Server Error", error });
     }
 });
 
-// delete
-router.delete("/:id", function (req, res) {
-    let books = JSON.parse(fs.readFileSync("./data/books.json", "utf8"));
-    let book = books.find((book) => book.id == req.params.id);
-    if (book) {
-        let updatedBooks = books.filter((book) => book.id != req.params.id);
-        fs.writeFile(
-            "./data/books.json",
-            JSON.stringify(updatedBooks),
-            function (err) {
-                if (err) {
-                    throw err;
-                } else {
-                    res.status(200).send({
-                        message: `Deleting book ${req.params.id}`
-                    });
-                }
+// Get a single book by ID
+router.get('/detail/:id', async (req, res) => {
+    const { id } = req.params; // 從 URL 取得書籍的 ID
+
+    try {
+        // 查詢指定 Product_ID 的書籍
+        const query = 'SELECT * FROM PRODUCT WHERE Product_ID = ?';
+        const [rows] = await db.execute(query, [id]);
+
+        // 檢查是否找到書籍
+        if (rows.length === 0) {
+            return res.status(404).send({ message: "書籍不存在" });
+        }
+
+        // 回傳找到的書籍資訊
+        res.status(200).json(rows[0]); // 回傳第一筆結果
+    } catch (error) {
+        console.error("Error fetching book:", error);
+        res.status(500).send({ message: "Internal Server Error" });
+    }
+});
+
+
+
+
+
+// Update a book by ID
+router.put("/:id", async (req, res) => {
+    const { id } = req.params;
+    const {
+        user_id, // 來自前端傳遞的用戶 ID
+        isAdmin,
+        Product_name,
+        Description,
+        Author,
+        Price,
+        Stock,
+        Status,
+        Product_image,
+    } = req.body;
+
+    console.log("Received data:", { user_id, isAdmin });
+
+    try {
+        // 確認書籍存在
+        const [book] = await db.execute("SELECT Seller_ID FROM PRODUCT WHERE Product_ID = ?", [id]);
+
+        if (book.length === 0) {
+            return res.status(404).send({ message: "書籍不存在" });
+        }
+
+        // 檢查權限
+        if (!isAdmin) {
+            const sellerId = book[0].Seller_ID;
+
+            // 從 VENDOR 表中確認用戶
+            const [vendor] = await db.execute("SELECT Member_ID FROM VENDOR WHERE Vendor_ID = ?", [sellerId]);
+            console.log("Vendor info:", vendor);
+
+            if (vendor.length === 0 || vendor[0].Member_ID !== Number(user_id)) {
+                return res.status(403).send({ message: "您無權修改此書籍" });
             }
+        }
+
+        // 更新書籍
+        const [result] = await db.execute(
+            `UPDATE PRODUCT 
+             SET Product_name = ?, Description = ?, Author = ?, Price = ?, Stock = ?, Status = ?, Product_image = ? 
+             WHERE Product_ID = ?`,
+            [Product_name, Description, Author, Price, Stock, Status, Product_image, id]
         );
+
+        console.log("Update result:", result);
+        if (result.affectedRows > 0) {
+            return res.status(200).send({ message: "書籍更新成功" });
+        } else {
+            return res.status(404).send({ message: "書籍未找到" });
+        }
+    } catch (error) {
+        console.error("Error updating book:", error);
+        return res.status(500).send({ message: "伺服器錯誤", error });
     }
 });
 
-// update
-router.put("/:id", function (req, res, next) {
-    let products = JSON.parse(fs.readFileSync("./data/books.json", "utf8"));
-    let book = products.find((book) => book.id == req.params.id);
-    if (book) {
-        book.name = req.body.name;
-        book.author = req.body.author;
-        book.category = req.body.category;
-        book.publishing_house = req.body.publishing_house;
-        book.price = Number(req.body.price);
-        book.discount = Number(req.body.discount);
-        book.quantity = Number(req.body.quantity);
-        book.availability_date = req.body.availability_date;
-        book.rating = Number(req.body.rating);
-        book.image = req.body.image;
 
-        if (validateProduct(book)) {
-            fs.writeFile(
-                "./data/books.json",
-                JSON.stringify(products),
-                function (err) {
-                    if (err) {
-                        throw err;
-                    } else {
-                        res.status(200).send({
-                            message: `Updating book ${req.body.name}`
-                        });
-                    }
-                }
-            );
+
+
+
+
+
+// Delete a book by ID
+router.delete('/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const [result] = await db.execute('DELETE FROM PRODUCT WHERE Product_ID = ?', [id]);
+        if (result.affectedRows > 0) {
+            res.status(200).send({ message: "Product deleted successfully" });
         } else {
-            res.status(400).send({ message: "Bad request" });
+            res.status(404).send({ message: "Product not found" });
         }
-    } else {
-        res.status(400).send({ message: "Please complete all fields" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Internal Server Error" });
     }
 });
 
-function validateProduct(product) {
-    let regexProductName = /^[\w\-\s\,]+$/;
-    // let regexLetters = /^[a-zA-Z]{2,30}/;
-    // let regexAlphaNumeric = /^[A-Za-z0-9]{2,30}/;
-    let regexAuthor =
-        /(^[a-zA-Z]{1,16})(\.{0,1})([ ]{0,1})([a-zA-Z]{1,16})(\.{0,1})([ ]{0,1})([a-zA-Z]{0,26})/;
-
-    return (
-        product.name &&
-        product.author &&
-        product.category &&
-        product.publishing_house &&
-        product.price &&
-        product.quantity &&
-        product.availability_date &&
-        product.image &&
-        product.name.match(regexProductName) &&
-        product.name.length >= 1 &&
-        product.name.length <= 50 &&
-        product.category.match(regexProductName) &&
-        product.category.length >= 2 &&
-        product.category.length <= 30 &&
-        product.author.match(regexAuthor) &&
-        product.author.length >= 2 &&
-        product.author.length <= 30 &&
-        product.publishing_house.match(regexProductName) &&
-        product.publishing_house.length >= 2 &&
-        product.publishing_house.length <= 30 &&
-        product.price > 0 &&
-        product.discount >= 0 &&
-        product.quantity >= 0 &&
-        product.rating >= 0 &&
-        product.rating <= 5 &&
-        product.availability_date.length > 0
-    );
-}
-
-//FUNCTIONS
-function arrayCheckboxes(property, obj) {
-    let propertySet = new Set();
-    obj.forEach((product) => propertySet.add(product[property]));
-    return propertySet;
-}
-
-function filterProducts(products, filterFunction, sortFunction) {
-    if (filterFunction) {
-        products = products.filter(filterFunction);
-    }
-    if (sortFunction) {
-        products = products.sort(sortFunction);
-    }
-    return products;
-}
-
-function searchProducts(item, searchValue) {
-    if (searchValue) {
-        return (
-            item.category.toLowerCase().includes(searchValue.toLowerCase()) ||
-            item.name.toLowerCase().includes(searchValue.toLowerCase())
-        );
-    }
-    return true;
-}
-
-// filter by categories
-function getProductsByCategory(item, categories) {
-    if (categories) {
-        return categories.indexOf(item.category) !== -1;
-    }
-    return true;
-}
-
-// filter by price range
-function getProductsByPriceRange(item, range) {
-    let checkedPriceRange = [];
-    if (range) {
-        checkedPriceRange.push(range);
-        checkedPriceRange = checkedPriceRange[0].split("_");
-    }
-    if (checkedPriceRange.length > 0) {
-        if (checkedPriceRange.length === 1) {
-            return item.price - item.discount >= checkedPriceRange[0];
-        } else {
-            return (
-                item.price - item.discount >= checkedPriceRange[0] &&
-                item.price - item.discount <= checkedPriceRange[1]
-            );
-        }
-    }
-    return true;
-}
-
-// filter by OS
-function getProductsByPublishingHouse(item, publishing_house) {
-    if (publishing_house) {
-        return publishing_house.indexOf(item.publishing_house) !== -1;
-    }
-    return true;
-}
-
-// filter by minimum rating
-function getProductsByRating(item, rating) {
-    // let selectedRating = document.getElementById('minimum_rating').value;
-    if (rating) {
-        return item.rating >= rating;
-    }
-    return true;
-}
-
-// filter by available stock (change stock to zero to see effects)
-function getProductsByStock(item, stock) {
-    if (stock === "true") {
-        return item.quantity > 0;
-    }
-    return true;
-}
-
-function getSorted(sort) {
-    if (sort === "none") {
-        return false;
-    }
-    if (sort === "asc") {
-        return (a, b) => a.price - a.discount - (b.price - b.discount);
-    } else if (sort === "desc") {
-        return (a, b) => b.price - b.discount - (a.price - a.discount);
-    }
-}
-
-module.exports = {
-    router,
-    getProductsByCategory,
-    getProductsByPublishingHouse,
-    searchProducts
-};
+module.exports = router;

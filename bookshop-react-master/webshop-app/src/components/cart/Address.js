@@ -6,68 +6,54 @@ function Address({ title, handleChangeAddress, address }) {
     <div id="billing-address">
       <div className="row g-3 address-section">
         <h4>{title}</h4>
-        <Form.Group
-          as={Col}
-          md="4"
-          className="mb-3"
-          controlId="validationCustom02"
-        >
-          <Form.Label>Street</Form.Label>
+        {/* 縣/市 */}
+        <Form.Group as={Col} md="4" className="mb-3" controlId="validationCustom01">
+          <Form.Label>縣/市</Form.Label>
           <Form.Control
             onChange={handleChangeAddress}
-            value={address.street}
+            value={address.street || ""}
             name="street"
             type="text"
             className="form-control"
             aria-describedby="inputGroupPrepend1"
-            pattern="(^[A-Za-z]{2,30})([ ]{0,1})([A-Za-z]{2,30}[ ]{0,1}){0,3}"
+            placeholder="例 : 台北市"
+            aria-label="例 : 台北市"
+            pattern="^[\u4e00-\u9fa5A-Za-z\s]+$" // 支持中文、英文和空格
             required
           />
-          <Form.Control.Feedback type="invalid">
-            Invalid street format.
-          </Form.Control.Feedback>
+          <Form.Control.Feedback type="invalid">請輸入有效的縣/市名稱</Form.Control.Feedback>
         </Form.Group>
-        <Form.Group
-          as={Col}
-          md="4"
-          className="mb-3"
-          controlId="validationCustom02"
-        >
-          <Form.Label>City</Form.Label>
+
+        {/* 鄉/鎮/市/區 */}
+        <Form.Group as={Col} md="4" className="mb-3" controlId="validationCustom02">
+          <Form.Label>鄉/鎮/市/區</Form.Label>
           <Form.Control
             onChange={handleChangeAddress}
-            value={address.city}
+            value={address.city || ""}
             name="city"
             type="text"
             className="form-control"
-            aria-describedby="inputGroupPrepend2"
+            placeholder="例 : 大安區"
+            aria-label="例 : 大安區"
+            pattern="^[\u4e00-\u9fa5A-Za-z\s]+$" // 同上
             required
-            pattern="(^[A-Za-z]{2,30})([ ]{0,1})([A-Za-z]{2,30})"
           />
-          <Form.Control.Feedback type="invalid">
-            Invalid city format.
-          </Form.Control.Feedback>
+          <Form.Control.Feedback type="invalid">請輸入有效的鄉/鎮/市/區</Form.Control.Feedback>
         </Form.Group>
-        <Form.Group
-          as={Col}
-          md="4"
-          className="mb-3"
-          controlId="validationCustom02"
-        >
-          <Form.Label>Suite</Form.Label>
+
+        {/* 剩餘地址 */}
+        <Form.Group as={Col} md="4" className="mb-3" controlId="validationCustom03">
+          <Form.Label>剩餘地址</Form.Label>
           <Form.Control
             onChange={handleChangeAddress}
-            value={address.suite}
+            value={address.suite || ""}
             name="suite"
             type="text"
             className="form-control"
-            aria-describedby="inputGroupPrepend3"
-            pattern="^[.0-9a-zA-Z\s,-]+$"
+            pattern="^[.0-9\u4e00-\u9fa5A-Za-z\s,-]+$" // 支持数字、中文和符号
             required
           />
-          <Form.Control.Feedback type="invalid">
-            Invalid suite format.
-          </Form.Control.Feedback>
+          <Form.Control.Feedback type="invalid">請填寫詳細地址</Form.Control.Feedback>
         </Form.Group>
         <Form.Group
           as={Col}
@@ -75,7 +61,7 @@ function Address({ title, handleChangeAddress, address }) {
           className="mb-3"
           controlId="validationCustom02"
         >
-          <Form.Label>Zip</Form.Label>
+          <Form.Label>郵遞區號(3碼)</Form.Label>
           <Form.Control
             onChange={handleChangeAddress}
             value={address.zipcode}
@@ -83,11 +69,13 @@ function Address({ title, handleChangeAddress, address }) {
             type="text"
             className="form-control"
             aria-describedby="inputGroupPrepend4"
-            pattern="^[0-9]{6}$"
+            placeholder="例 : 106"
+            aria-label="例 : 106"
+            pattern="^[0-9]{3}$"
             required
           />
           <Form.Control.Feedback type="invalid">
-            Invalid zip code format.
+            格式錯誤
           </Form.Control.Feedback>
         </Form.Group>
       </div>

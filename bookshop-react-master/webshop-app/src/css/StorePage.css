@@ -24,16 +24,21 @@ body {
 
 .book-img {
   text-align: center;
-  height: 350px;
-  background-color: #f7ebeb;
+  height: 250px; /* 固定圖片區域高度 */
+  background-color: #ffff;
   width: 90%;
   margin: auto;
+  overflow: hidden; /* 確保超出部分不顯示 */
+  border-radius: 8px; /* 可選：圖片區域邊角圓滑 */
 }
 
 .book-img img {
-  width: 170px;
-  height: 220px;
+  width: 100%; /* 圖片寬度填滿容器 */
+  height: 100%; /* 圖片高度填滿容器 */
+  object-fit: cover; /* 裁剪圖片，保持比例 */
+  border-radius: 8px; /* 確保圖片邊角與容器一致 */
 }
+
 
 .book-info {
   width: 90%;
@@ -41,6 +46,27 @@ body {
   height: 270px;
   padding: 5px 5px 10px 10px;
   border: 1px solid #f7ebeb;
+}
+
+.book-text-info{
+ padding: 10px;
+}
+
+.book-name{
+  font-weight: 600;
+   /* color: #b90000; */
+  margin-bottom: .3rem;
+  font-size: large;
+}
+
+.author{
+  font-size: small;
+  color: rgba(75, 75, 75, 0.6);
+  font-weight: 530;
+}
+
+.price-name{
+  font-size: medium;
 }
 
 .book-card {
@@ -119,6 +145,8 @@ label {
 
 .discounted {
   text-decoration: line-through 2px red;
+  font-size: small;
+  color: #777;
 }
 
 .checked {
@@ -137,15 +165,19 @@ label {
   display: none !important;
 }
 
+
+
 @media (max-width: 768px) {
-  .filter-toggle {
-    text-align: right;
+  .book-img {
+    height: 200px; /* 在平板螢幕上縮小圖片區域 */
   }
 }
 
 @media (max-width: 576px) {
-  .filter-form {
-    height: 100%;
-    width: 100%;
+  .book-img {
+    height: 150px; /* 在手機螢幕上進一步縮小圖片區域 */
   }
 }
+
+
+

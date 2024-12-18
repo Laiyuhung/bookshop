@@ -1,24 +1,34 @@
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router-dom';
 import useBreadcrumbs from 'use-react-router-breadcrumbs';
 
+// 路徑與名稱對應的對照表
+const routes = [
+    { path: '/', breadcrumb: 'Home' },
+    { path: '/books', breadcrumb: 'Books' },
+];
+
+// 解碼 URL
+const decodeBreadcrumb = (encoded) => decodeURIComponent(encoded);
+
 export default function Breadcrumbs() {
-    const breadcrumbs = useBreadcrumbs();
-    const lastBreadcrumbs = breadcrumbs.slice(-1);
-
-    const capitalizeFirstLetter = (string) => {
-        return string.charAt(0).toUpperCase() + string.slice(1);
-    }
-
-    let formattedBreadcrumbs = lastBreadcrumbs[0].key.split('/');
-    let formattedBreadcrumb = capitalizeFirstLetter(formattedBreadcrumbs[formattedBreadcrumbs.length -1].replaceAll('%20', ' '));
-
-
-    const firstBreadcrumbs = breadcrumbs.slice(0, breadcrumbs.length - 1);
+    // 使用 useBreadcrumbs 並傳入對照表
+    const breadcrumbs = useBreadcrumbs(routes);
 
     return (
         <div className='container p-4'>
-            {firstBreadcrumbs.map(({ breadcrumb }) => <span key={breadcrumb.key}><Link to={breadcrumb.key}>{breadcrumb}</Link> / </span>)}
-            <span>{formattedBreadcrumb}</span>
+            {breadcrumbs.map(({ breadcrumb, match }, index) => {
+                // 如果 breadcrumb 是自定義的就直接顯示，否則解碼路徑中的最後部分
+                const displayText = routes.find(r => r.path === match.pathname)
+                    ? breadcrumb
+                    : decodeBreadcrumb(breadcrumb.key.split('/').pop());
+
+                return (
+                    <span key={match.pathname}>
+                        <Link to={match.pathname}>{displayText}</Link>
+                        {index < breadcrumbs.length - 1 && ' / '}
+                    </span>
+                );
+            })}
         </div>
-    )
+    );
 }
