@@ -15,7 +15,6 @@ function CheckoutPage() {
     const [discount, setDiscount] = useState(0); // 折扣金額
     const [couponUsedId, setCouponUsedId] = useState(null); // 優惠券ID
     const [availableCoupons, setAvailableCoupons] = useState([]); // 優惠券清單
-    const [selectedCoupon, setSelectedCoupon] = useState(null); // 已選優惠券
     const [address, setAddress] = useState("");
     const [paymentMethod, setPaymentMethod] = useState("信用卡");
     const [shippingMethod, setShippingMethod] = useState("宅配到府");
@@ -24,7 +23,15 @@ function CheckoutPage() {
     const [show, setShow] = useState(false);
     const [error, setError] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
+    const [totalAmount, setTotalAmount] = useState(0); // 總金額
+
     const navigate = useNavigate();
+
+    // 計算總金額
+    const calculateTotalAmount = () => {
+        const total = Math.max(0, totalCartValue + discount + shippingFee);
+        setTotalAmount(total);
+    };
 
     // 獲取購物車資料
     const fetchCartItems = async () => {
@@ -63,11 +70,11 @@ function CheckoutPage() {
             setShow(true);
             return;
         }
-    
+
         try {
             const response = await fetch(`${BASE_URL}/coupons/${userId}`);
             if (!response.ok) throw new Error("無法獲取優惠券資料");
-    
+
             const data = await response.json();
             setAvailableCoupons(data);
         } catch (error) {
@@ -77,23 +84,26 @@ function CheckoutPage() {
             setShow(true);
         }
     };
-    
 
     useEffect(() => {
         fetchCartItems();
         fetchAvailableCoupons();
     }, []);
 
+    useEffect(() => {
+        calculateTotalAmount();
+    }, [totalCartValue, discount, shippingFee]);
+
     // 處理優惠券選擇
     const handleCouponChange = (event) => {
         const selectedCouponId = event.target.value;
         const selectedCoupon = availableCoupons.find((coupon) => coupon.Coupon_ID === parseInt(selectedCouponId));
-    
+
         if (selectedCoupon) {
             // 檢查是否達到低消限制
             if (totalCartValue >= selectedCoupon.Low_money) {
                 setCouponUsedId(selectedCoupon.Coupon_ID);
-    
+
                 if (selectedCoupon.Type === "no_deliverfee") {
                     // 處理免運費
                     setShippingFee(0);
@@ -101,6 +111,7 @@ function CheckoutPage() {
                     setPromoMessage(`已套用優惠券：免運費 (${selectedCoupon.Detail})`);
                 } else if (selectedCoupon.Type.startsWith("*")) {
                     // 處理打折
+                    setShippingFee(100);
                     const discountRate = parseFloat(selectedCoupon.Type.slice(1)); // 解析折扣率，例如 *0.95
                     if (!isNaN(discountRate)) {
                         const discountValue = Math.round(totalCartValue * (1 - discountRate)); // 四捨五入
@@ -112,6 +123,7 @@ function CheckoutPage() {
                     }
                 } else if (!isNaN(Number(selectedCoupon.Type))) {
                     // 處理固定折扣金額
+                    setShippingFee(100);
                     const discountValue = Number(selectedCoupon.Type);
                     setDiscount(discountValue);
                     setPromoMessage(`已套用優惠券：折扣金額 ${discountValue} (${selectedCoupon.Detail})`);
@@ -133,13 +145,6 @@ function CheckoutPage() {
             setPromoMessage("未選擇優惠券");
         }
     };
-    
-    
-    
-    
-
-    // 計算總金額（四捨五入）
-    const totalAmount = Math.round(totalCartValue + shippingFee - discount);
 
     // 提交訂單
     const handlePlaceOrder = async () => {
@@ -149,7 +154,7 @@ function CheckoutPage() {
             setShow(true);
             return;
         }
-    
+
         const orderData = {
             buyerId: userId,
             address,
@@ -164,10 +169,7 @@ function CheckoutPage() {
             })),
             total: totalAmount,
         };
-    
-        // 打印 orderData 進行檢查
-        console.log("Submitting order with data:", orderData);
-    
+
         try {
             const response = await fetch(`${BASE_URL}/orders`, {
                 method: "POST",
@@ -176,32 +178,19 @@ function CheckoutPage() {
                 },
                 body: JSON.stringify(orderData),
             });
-    
+
             if (!response.ok) {
-                const data = await response.json();
-                if (data.message === "庫存不足") {
-                    const insufficientStockItems = data.insufficientStock
-                        .map((item) => {
-                            const cartItem = cartItems.find((ci) => ci.Product_ID === item.Product_ID);
-                            return cartItem ? cartItem.Product_name : "未知商品";
-                        })
-                        .join(", ");
-                    setErrorMessage(`以下商品庫存不足: ${insufficientStockItems}`);
-                    setError(true);
-                    setShow(true);
-                    return;
-                }
                 throw new Error("提交訂單失敗");
             }
-    
+
             const clearCartResponse = await fetch(`${BASE_URL}/cart/${userId}`, {
                 method: "DELETE",
             });
-    
+
             if (!clearCartResponse.ok) {
                 throw new Error("清空購物車失敗");
             }
-    
+
             setCartItems([]);
             setTotalCartValue(0);
             setDiscount(0);
@@ -217,7 +206,6 @@ function CheckoutPage() {
             setShow(true);
         }
     };
-    
 
     return (
         <>
@@ -266,19 +254,7 @@ function CheckoutPage() {
                         </select>
                         <p>{promoMessage}</p>
 
-                        {selectedCoupon && (
-                            <div>
-                                <h4>優惠券資訊</h4>
-                                <p>描述: {selectedCoupon.Detail}</p>
-                                <p>
-                                    折扣金額: $
-                                    {typeof selectedCoupon.Low_money === "number"
-                                        ? selectedCoupon.Low_money.toFixed(2)
-                                        : "0.00"}
-                                </p>
-                            </div>
-                        )}
-                        <h4>折扣金額: ${typeof discount === "number" ? discount.toFixed(2) : "0.00"}</h4>
+                        <h4>折扣金額: ${discount.toFixed(2)}</h4>
                         <h4>運費: ${shippingFee.toFixed(2)}</h4>
                         <h4>總金額: ${totalAmount.toFixed(2)}</h4>
 
