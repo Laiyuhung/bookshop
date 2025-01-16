@@ -118,7 +118,7 @@ function StorePage() {
                 <Breadcrumbs />
 
                 {/* 頂部篩選與搜尋欄位 */}
-                <div className="filter-bar container my-3">
+                <div className="filter-bar container" style={{marginBottom: "2rem",maxWidth:"835px"}}>
                     <h5>篩選書籍</h5>
                     <div className="d-flex align-items-center flex-wrap">
                         <div className="filter-options d-flex flex-wrap me-3">

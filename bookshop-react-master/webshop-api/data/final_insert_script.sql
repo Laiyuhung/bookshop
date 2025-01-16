@@ -1,3 +1,4 @@
+-- SQLBook: Code
 -- Disable safe updates
 SET SQL_SAFE_UPDATES = 0;
 

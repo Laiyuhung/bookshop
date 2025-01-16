@@ -143,10 +143,19 @@ function RevenueAnalysisPage() {
                             </Col>
                         </Row>
 
-                        <Row className="mt-4">
+                        <Row className="mt-4" >
                             <Col>
-                                <h4>銷售比例</h4>
+                                <h4 style={{marginTop:"4rem"}}>銷售比例</h4>
+                                <div className="sale-pie"  style={{
+        maxWidth: "500px",
+        maxHeight: "500px",
+        margin: "0 auto", // 水平置中
+        display: "flex", // 使用 Flexbox
+        justifyContent: "center", // 水平置中
+        alignItems: "center", // 垂直置中
+    }}>
                                 <Pie data={pieData} />
+                                </div>
                             </Col>
                         </Row>
                     </>

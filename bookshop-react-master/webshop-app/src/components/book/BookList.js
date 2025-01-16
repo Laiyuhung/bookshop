@@ -56,7 +56,7 @@ function BookList({
                 </Alert>
             )}
 
-            <div className="container mt-3 mb-3">
+            <div className="container mt-3 mb-3" style={{maxWidth:"835px"}}>
                 {loading ? (
                     <div className="text-center">
                         <Spinner animation="border" role="status">
@@ -75,12 +75,12 @@ function BookList({
                                             src={`/images/${book.Product_image || "default-book.jpg"}`}
                                             className="card-img-top"
                                             alt={book.Product_name}
-                                            style={{ objectFit: "contain", height: "200px" }}
+                                            style={{ objectFit: "contain", height: "200px" ,padding: "25px 0"}}
                                         />
                                         <div className="card-body">
-                                            <h5 className="card-title">{book.Product_name}</h5>
+                                            <h5 className="card-title" title={book.Product_name}>{book.Product_name.length > 10 ? `${book.Product_name.substring(0, 10)}...` : book.Product_name}</h5>
                                             {/* <p className="card-text">{book.Description}</p> */}
-                                            <p className="card-text">作者： {book.Author || "未知作者"}</p>
+                                            <p className="card-text" title={book.Author}>作者： {book.Author && book.Author.length > 8 ? `${book.Author.substring(0, 8)}...` : book.Author || "未知作者"}</p>
                                             <p className="card-text">
                                                 價格： ${parseFloat(book.Price).toFixed(2)}
                                             </p>
@@ -99,12 +99,12 @@ function BookList({
                                                 </div>
                                             )}
 
-                                            <div className="d-flex justify-content-between">
+                                            <div className="book-list-button d-flex justify-content-between">
                                                 <button
                                                     className="btn btn-primary"
                                                     onClick={() => handleAddToCart(book.Product_ID)}
                                                     disabled={!book.Stock}
-                                                >
+                                                >   
                                                     {book.Stock > 0 ? "加入購物車" : "售罄"}
                                                 </button>
                                                 <button

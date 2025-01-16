@@ -34,3 +34,13 @@
 .card-list-button{
     margin: 1rem 0;
 }
+
+.book-list-button{
+    padding: 12px 0;
+}
+
+.btn-info-book{
+    color: #1800ef;
+    background-color: #ffffff;
+    border-color: #0dcaf0;
+}
